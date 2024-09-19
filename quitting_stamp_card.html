@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>離職集點卡</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .card-body {
+            border-radius: 1rem;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+            padding: 2rem;
+            margin-top: 2rem;
+            margin-bottom: 2rem;
+            background-color: white;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 5px;
+        }
+
+        .cell {
+            aspect-ratio: 1 / 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            color: gray;
+            position: relative;
+            overflow: hidden;
+            background-color: lightgray;
+            border-radius: 0.25rem;
+        }
+
+        .stamped {
+            background-size: cover;
+            background-position: center;
+            font-weight: bold;
+        }
+
+        .stamped::after {
+            content: attr(data-date);
+            position: absolute;
+            top: 0px;
+            right: 0px;
+            font-size: 0.7rem;
+            background-color: rgba(206, 203, 203, 0.614);
+            padding: 1px 3px;
+            border-radius: 3px;
+            color: red;
+        }
+
+        .image-preview {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            object-fit: cover;
+            border-radius: 0.25rem;
+            transition: all 0.3s ease-in-out;
+        }
+
+        .image-selector-label {
+            cursor: pointer;
+            transition: all 0.3s ease-in-out;
+            border-radius: 0.25rem;
+        }
+
+        .image-selector-label:hover {
+            transform: scale(1.05);
+        }
+
+        .form-check {
+            width: 80px;
+        }
+
+        .form-check-input:checked+.image-selector-label {
+            box-shadow: 0 0 0 3px #4a90e2, 0 4px 10px rgba(74, 144, 226, 0.3);
+        }
+
+        .form-check-input:checked+.image-selector-label .image-preview {
+            transform: scale(0.95);
+        }
+
+    </style>
+</head>
+
+<body>
+    <div class="container mt-5">
+        <h2 class="text-center mb-4">離職集點卡</h2>
+
+        <div class="row">
+            <div class="col-md-3">
+                <h5 class="mb-3 text-center">更換印章</h5>
+                <div id="imageSelector" class="mb-3 d-flex flex-wrap justify-content-start">
+                    <!-- JavaScript動態添加圖片選項 -->
+                </div>
+            </div>
+            <div class="col-md-9">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <button id="addStamp" class="btn btn-primary">新增集點</button>
+                        <span>共100格，集滿離職</span>
+                    </div>
+                    <div id="grid" class="grid-container mb-3"></div>
+                    
+                    <div>
+                        <h5>真的做不了，沒有一天是適合上班的 TT</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const grid = document.getElementById('grid');
+        const addStampButton = document.getElementById('addStamp');
+        const imageSelector = document.getElementById('imageSelector');
+        let stampCount = 0;
+        let stamps = [];
+        let selectedImage = './img/chiikawa.jpeg' //預設圖片
+
+        const images = [
+            { src: './img/chiikawa.jpeg', name: '吉伊' },
+            { src: './img/hachiware.jpeg', name: '小八' },
+            { src: './img/usagi.jpeg', name: '烏薩奇' },
+            { src: './img/momonga.jpeg', name: '小桃' }
+        ];
+
+        function createImageSelector() {
+            images.forEach((image, index) => {
+                const radioHtml = `
+                    <div class="form-check mb-2">
+                        <input class="form-check-input visually-hidden" type="radio" name="bgImage" id="image${index}" value="${image.src}" ${index === 0 ? 'checked' : ''}>
+                        <label class="image-selector-label" for="image${index}">
+                            <img src="${image.src}" class="image-preview" alt="${image.name}">
+                        </label>
+                    </div>
+                `;
+                imageSelector.innerHTML += radioHtml;
+            });
+
+            imageSelector.addEventListener('change', (e) => {
+                if (e.target.type === 'radio') {
+                    selectedImage = e.target.value;
+                    updateGrid();
+                }
+            });
+        }
+
+        function createGrid() {
+            for (let i = 0; i < 100; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell border';
+                cell.textContent = i + 1;
+                grid.appendChild(cell);
+            }
+        }
+
+        function formatDate(date) {
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${month}/${day}`;
+        }
+
+        function addStamp() {
+            if (stampCount < 100) {
+                if (confirm('越來越厭世\n確定要累積一點嗎？')) {
+                    const today = new Date();
+                    stamps.push({
+                        date: today.toISOString(),
+                        index: stampCount,
+                        image: selectedImage
+                    });
+                    updateGrid();
+                    saveData();
+
+                    if (stampCount === 100) {
+                        alert('恭喜你可以離職惹!QAQ');
+                        addStampButton.disabled = true;
+                    }
+                }
+            }
+        }
+
+        function updateGrid() {
+            const cells = grid.getElementsByClassName('cell');
+            stamps.forEach(stamp => {
+                const cell = cells[stamp.index];
+                cell.classList.add('stamped');
+                cell.style.backgroundImage = `url('${stamp.image}')`;
+                cell.textContent = '';
+                cell.setAttribute('data-date', formatDate(new Date(stamp.date)));
+            });
+            stampCount = stamps.length;
+        }
+
+        function saveData() {
+            localStorage.setItem('resignationStamps', JSON.stringify(stamps));
+        }
+
+        function loadData() {
+            const savedStamps = localStorage.getItem('resignationStamps');
+            if (savedStamps) {
+                stamps = JSON.parse(savedStamps);
+                updateGrid();
+                if (stampCount === 100) {
+                    addStampButton.disabled = true;
+                }
+            }
+        }
+
+        createImageSelector();
+        createGrid();
+        loadData();
+        addStampButton.addEventListener('click', addStamp);
+    </script>
+</body>
+
+</html>
